@@ -6,8 +6,8 @@ from rest_framework.test import APITestCase
 from model_mommy import mommy
 from ..models import User, SequenceAnnotation, Document, Label, Seq2seqAnnotation, DocumentAnnotation
 from ..models import DOCUMENT_CLASSIFICATION, SEQUENCE_LABELING, SEQ2SEQ
-from ..utils import CoNLLHandler, CSVClassificationHandler, CSVSeq2seqHandler
-from ..utils import JsonClassificationHandler, JsonLabelingHandler, JsonSeq2seqHandler
+from ..utils import CoNLLParser, CSVClassificationHandler, CSVSeq2seqHandler
+from ..utils import PlainTextParser
 from ..exceptions import FileParseException
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
@@ -754,15 +754,20 @@ class TestFileHandler(APITestCase):
 
     def test_give_valid_data_to_conll_handler(self):
         self.handler_test_helper(filename='labeling.conll',
-                                 handler=CoNLLHandler(self.labeling_project))
+                                 handler=CoNLLParser(self.labeling_project))
         self.assertEqual(Document.objects.count(), 3)
         self.assertEqual(Label.objects.count(), 3)  # LOC, PER, O
         self.assertEqual(SequenceAnnotation.objects.count(), 20)  # num of annotation line
 
+    def test_plain_handler(self):
+        self.handler_test_helper(filename='plain1.txt',
+                                 handler=PlainTextParser(self.classification_project))
+        self.assertEqual(Document.objects.count(), 40000)
+
     def test_give_invalid_data_to_conll_handler(self):
         with self.assertRaises(FileParseException):
             self.handler_test_helper(filename='labeling.invalid.conll',
-                                     handler=CoNLLHandler(self.labeling_project))
+                                     handler=CoNLLParser(self.labeling_project))
         self.assertEqual(Document.objects.count(), 0)
         self.assertEqual(Label.objects.count(), 0)
         self.assertEqual(SequenceAnnotation.objects.count(), 0)

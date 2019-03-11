@@ -58,6 +58,9 @@ class Project(PolymorphicModel):
     def get_annotation_class(self):
         raise NotImplementedError()
 
+    def get_storage(self, data):
+        raise NotImplementedError()
+
     def get_file_handler(self, format):
         raise NotImplementedError()
 
@@ -87,12 +90,16 @@ class TextClassificationProject(Project):
     def get_annotation_class(self):
         return DocumentAnnotation
 
+    def get_storage(self, data):
+        from .utils import ClassificationStorage
+        return ClassificationStorage(data, self)
+
     def get_file_handler(self, format):
         from .utils import JsonClassificationHandler
         from .utils import CSVClassificationHandler
-        from .utils import PlainTextHandler
+        from .utils import PlainTextParser
         if format == 'plain':
-            return PlainTextHandler(self)
+            return PlainTextParser(self)
         elif format == 'csv':
             return CSVClassificationHandler(self)
         elif format == 'json':
@@ -122,14 +129,18 @@ class SequenceLabelingProject(Project):
     def get_annotation_class(self):
         return SequenceAnnotation
 
+    def get_storage(self, data):
+        from .utils import SequenceLabelingStorage
+        return SequenceLabelingStorage(data, self)
+
     def get_file_handler(self, format):
         from .utils import JsonLabelingHandler
-        from .utils import PlainTextHandler
-        from .utils import CoNLLHandler
+        from .utils import PlainTextParser
+        from .utils import CoNLLParser
         if format == 'plain':
-            return PlainTextHandler(self)
+            return PlainTextParser(self)
         elif format == 'conll':
-            return CoNLLHandler(self)
+            return CoNLLParser(self)
         elif format == 'json':
             return JsonLabelingHandler(self)
         raise ValidationError('format {} is invalid.'.format(format))
@@ -157,12 +168,16 @@ class Seq2seqProject(Project):
     def get_annotation_class(self):
         return Seq2seqAnnotation
 
+    def get_storage(self, data):
+        from .utils import Seq2seqStorage
+        return Seq2seqStorage(data, self)
+
     def get_file_handler(self, format):
         from .utils import JsonSeq2seqHandler
         from .utils import CSVSeq2seqHandler
-        from .utils import PlainTextHandler
+        from .utils import PlainTextParser
         if format == 'plain':
-            return PlainTextHandler(self)
+            return PlainTextParser(self)
         elif format == 'csv':
             return CSVSeq2seqHandler(self)
         elif format == 'json':

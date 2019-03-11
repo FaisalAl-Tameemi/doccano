@@ -14,6 +14,7 @@ from .models import Project, Label, Document
 from .permissions import IsAdminUserAndWriteOnly, IsProjectUser, IsOwnAnnotation
 from .serializers import ProjectSerializer, LabelSerializer, DocumentSerializer
 from .serializers import ProjectPolymorphicSerializer
+from .utils import CSVParser, JsonParser, PlainTextParser, CoNLLParser
 
 
 class ProjectList(generics.ListCreateAPIView):
@@ -164,9 +165,23 @@ class TextUploadAPI(APIView):
         if 'file' not in request.data:
             raise ParseError('Empty content')
         project = get_object_or_404(Project, pk=self.kwargs['project_id'])
-        handler = project.get_file_handler(request.data['format'])
-        handler.handle_uploaded_file(request.data['file'], self.request.user)
+        parser = self.select_parser(request.data['format'])
+        data = parser.parse(request.data['file'])
+        storage = project.get_storage(data)
+        storage.handle_uploaded_file(self.request.user)
         return Response(status=status.HTTP_201_CREATED)
+
+    def select_parser(self, format):
+        if format == 'plain':
+            return PlainTextParser()
+        elif format == 'csv':
+            return CSVParser()
+        elif format == 'json':
+            return JsonParser()
+        elif format == 'conll':
+            return CoNLLParser()
+        else:
+            pass
 
 
 class TextDownloadAPI(APIView):
